@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analizzatore di Performance degli Investimenti Alleanza</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #2c3e50;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #results {
+            margin-top: 20px;
+        }
+        .results-table {
+            max-height: 600px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+        }
+        .highlight {
+            background-color: #e8f4fd;
+            font-weight: bold;
+        }
+        .positive {
+            background-color: #d4edda;
+        }
+        .negative {
+            background-color: #f8d7da;
+        }
+        .chart-container {
+            height: 400px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Analizzatore di Performance degli Investimenti Alleanza</h1>
+        
+        <div class="input-group">
+            <label for="annualContribution">Contributo annuale (€):</label>
+            <input type="number" id="annualContribution" min="0" step="100" value="1000">
+        </div>
+
+        <button onclick="calculateReturns()">Analizza Performance</button>
+
+        <div id="results">
+            <div class="results-table"></div>
+            <div class="chart-container">
+                <canvas id="returnChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const historicalData = {
+            '2023': { stocks: 23.79, balanced: 14.27 },
+            '2022': { stocks: -18.14, balanced: -16.54 },
+            '2021': { stocks: 21.82, balanced: 10.91 },
+            '2020': { stocks: 15.90, balanced: 13.54 },
+            '2019': { stocks: 27.67, balanced: 19.60 },
+            '2018': { stocks: -8.71, balanced: -5.23 },
+            '2017': { stocks: 22.40, balanced: 15.44 },
+            '2016': { stocks: 7.51, balanced: 5.51 },
+            '2015': { stocks: -0.87, balanced: -0.52 },
+            '2014': { stocks: 4.94, balanced: 3.96 },
+            '2013': { stocks: 26.68, balanced: 14.01 },
+            '2012': { stocks: 15.83, balanced: 11.50 },
+            '2011': { stocks: -5.54, balanced: -0.32 },
+            '2010': { stocks: 11.76, balanced: 8.26 },
+            '2009': { stocks: 30.01, balanced: 20.01 },
+            '2008': { stocks: -40.71, balanced: -25.43 },
+            '2007': { stocks: 9.04, balanced: 7.23 },
+            '2006': { stocks: 20.07, balanced: 13.24 },
+            '2005': { stocks: 9.49, balanced: 6.69 },
+            '2004': { stocks: 14.72, balanced: 10.03 },
+            '2003': { stocks: 33.11, balanced: 20.47 },
+            '2002': { stocks: -19.89, balanced: -8.96 },
+            '2001': { stocks: -16.82, balanced: -7.09 },
+            '2000': { stocks: -13.18, balanced: -5.27 },
+            '1999': { stocks: 24.93, balanced: 12.96 },
+            '1998': { stocks: 24.34, balanced: 14.60 },
+            '1997': { stocks: 15.76, balanced: 10.46 },
+            '1996': { stocks: 13.48, balanced: 9.29 },
+            '1995': { stocks: 20.72, balanced: 14.43 },
+            '1994': { stocks: 5.08, balanced: 1.03 },
+            '1993': { stocks: 22.50, balanced: 14.50 },
+            '1992': { stocks: -5.23, balanced: -0.14 },
+            '1991': { stocks: 18.28, balanced: 12.97 },
+            '1990': { stocks: -17.02, balanced: -6.81 },
+            '1989': { stocks: 16.76, balanced: 12.06 },
+            '1988': { stocks: 22.42, balanced: 14.45 },
+            '1987': { stocks: 16.15, balanced: 10.89 },
+            '1986': { stocks: 41.38, balanced: 25.63 },
+            '1985': { stocks: 41.37, balanced: 26.82 },
+            '1984': { stocks: 1.89, balanced: 4.13 },
+            '1983': { stocks: 21.87, balanced: 14.12 }
+        };
+
+        function calculateReturns() {
+            const annualContribution = parseFloat(document.getElementById('annualContribution').value);
+
+            let alleatAzionariaBalance = 0;
+            let alleataBilanciataBalance = 0;
+            let alleataGarantitaBalance = 0;
+            let alleatAzionariaBalances = [];
+            let alleataBilanciataBalances = [];
+            let alleataGarantitaBalances = [];
+            let totalContributions = [];
+            let azionariaPerformance = [];
+            let bilanciataPerformance = [];
+            let garantitaPerformance = [];
+
+            const years = Object.keys(historicalData).reverse();
+            const keyYears = [5, 10, 20, 30, 40];
+
+            years.forEach((year, index) => {
+                const azionariaReturn = historicalData[year].stocks / 100;
+                const bilanciataReturn = historicalData[year].balanced / 100;
+                const garantitaReturn = 0.025; // 2.5% fisso (corretto)
+
+                // Calcolo del nuovo bilancio considerando il rendimento e il contributo annuale
+                alleatAzionariaBalance = alleatAzionariaBalance * (1 + azionariaReturn) + annualContribution;
+                alleataBilanciataBalance = alleataBilanciataBalance * (1 + bilanciataReturn) + annualContribution;
+                alleataGarantitaBalance = alleataGarantitaBalance * (1 + garantitaReturn) + annualContribution;
+
+                alleatAzionariaBalances.push(alleatAzionariaBalance);
+                alleataBilanciataBalances.push(alleataBilanciataBalance);
+                alleataGarantitaBalances.push(alleataGarantitaBalance);
+                
+                const totalContribution = annualContribution * (index + 1);
+                totalContributions.push(totalContribution);
+
+                // Calcolo della performance cumulativa
+                const azionariaPerf = ((alleatAzionariaBalance - totalContribution) / totalContribution) * 100;
+                const bilanciataPerf = ((alleataBilanciataBalance - totalContribution) / totalContribution) * 100;
+                const garantitaPerf = ((alleataGarantitaBalance - totalContribution) / totalContribution) * 100;
+
+                azionariaPerformance.push(azionariaPerf);
+                bilanciataPerformance.push(bilanciataPerf);
+                garantitaPerformance.push(garantitaPerf);
+            });
+
+            displayResults(alleatAzionariaBalances, alleataBilanciataBalances, alleataGarantitaBalances, totalContributions, azionariaPerformance, bilanciataPerformance, garantitaPerformance, years, keyYears);
+            createChart(alleatAzionariaBalances, alleataBilanciataBalances, alleataGarantitaBalances, totalContributions, years);
+        }
+
+        function displayResults(alleatAzionariaBalances, alleataBilanciataBalances, alleataGarantitaBalances, totalContributions, azionariaPerformance, bilanciataPerformance, garantitaPerformance, years, keyYears) {
+            const resultsDiv = document.querySelector('.results-table');
+            resultsDiv.innerHTML = '<h2>Risultati dell\'Analisi</h2>';
+
+            let tableHTML = '<table><tr><th>Anno</th><th>Alleata Azionaria</th><th>Performance</th><th>Alleata Bilanciata</th><th>Performance</th><th>Alleata Garantita</th><th>Performance</th><th>Capitale Versato</th></tr>';
+
+            years.forEach((year, index) => {
+                const isKeyYear = keyYears.includes(index + 1);
+                const rowClass = isKeyYear ? 'highlight' : '';
+                const azionariaClass = index === 0 || alleatAzionariaBalances[index] >= alleatAzionariaBalances[index-1] ? 'positive' : 'negative';
+                const bilanciataClass = index === 0 || alleataBilanciataBalances[index] >= alleataBilanciataBalances[index-1] ? 'positive' : 'negative';
+                
+                tableHTML += `<tr class="${rowClass}">
+                    <td>${index + 1}</td>
+                    <td class="${azionariaClass}">€${alleatAzionariaBalances[index].toFixed(2)}</td>
+                    <td>${azionariaPerformance[index].toFixed(2)}%</td>
+                    <td class="${bilanciataClass}">€${alleataBilanciataBalances[index].toFixed(2)}</td>
+                    <td>${bilanciataPerformance[index].toFixed(2)}%</td>
+                    <td>€${alleataGarantitaBalances[index].toFixed(2)}</td>
+                    <td>${garantitaPerformance[index].toFixed(2)}%</td>
+                    <td>€${totalContributions[index].toFixed(2)}</td>
+                </tr>`;
+            });
+
+            tableHTML += '</table>';
+            resultsDiv.innerHTML += tableHTML;
+        }
+
+        function createChart(alleatAzionariaBalances, alleataBilanciataBalances, alleataGarantitaBalances, totalContributions, years) {
+            const ctx = document.getElementById('returnChart').getContext('2d');
+            const labels = years.map((_, index) => index + 1);
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Alleata Azionaria',
+                        data: alleatAzionariaBalances,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }, {
+                        label: 'Alleata Bilanciata',
+                        data: alleataBilanciataBalances,
+                        borderColor: 'rgb(255, 99, 132)',
+                        tension: 0.1
+                    }, {
+                        label: 'Alleata Garantita',
+                        data: alleataGarantitaBalances,
+                        borderColor: 'rgb(255, 206, 86)',
+                        tension: 0.1
+                    }, {
+                        label: 'Capitale Versato',
+                        data: totalContributions,
+                        borderColor: 'rgb(54, 162, 235)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '€' + value.toFixed(0);
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
